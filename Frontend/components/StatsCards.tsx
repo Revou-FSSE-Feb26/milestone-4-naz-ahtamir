@@ -23,9 +23,9 @@ export default function StatsCards() {
         const response = await apiClient.get(`/transactions/stats?startDate=${startDate}&endDate=${endDate}`)
         setStats(response.data)
       } catch (error) {
-        console.error('Failed to fetch stats:', error)
+        // Silently fail
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     }
 

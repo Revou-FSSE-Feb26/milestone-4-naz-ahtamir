@@ -37,8 +37,11 @@ export default function LoginPage() {
 
       const { token, user } = response.data;
 
-      // Save to auth store
+      // Save to auth store (will persist to localStorage as 'auth-store')
       setAuth(user, token);
+      
+      // Also save token directly for backward compatibility
+      localStorage.setItem('token', token);
 
       // Redirect to dashboard
       router.push('/dashboard');
@@ -57,7 +60,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-black flex items-center justify-center p-4">
       <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center">
         {/* Left Side - Branding */}
         <motion.div
@@ -71,42 +74,42 @@ export default function LoginPage() {
               <div className="w-12 h-12 rounded-2xl bg-gradient-primary flex items-center justify-center">
                 <span className="text-white font-bold text-2xl">F</span>
               </div>
-              <span className="text-3xl font-bold text-neutral-900 dark:text-neutral-100">
+              <span className="text-3xl font-bold font-mono text-white">
                 FinTrack
               </span>
             </div>
-            <h1 className="text-5xl font-bold text-neutral-900 dark:text-neutral-100 leading-tight">
+            <h1 className="text-5xl font-bold font-mono text-[#0066ff] leading-tight">
               Take control of
               <br />
               your finances
             </h1>
-            <p className="text-lg text-neutral-600 dark:text-neutral-400">
+            <p className="text-lg text-zinc-400">
               Track expenses, manage budgets, and achieve your financial goals with our powerful platform.
             </p>
             <div className="space-y-4 pt-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                <div className="w-10 h-10 rounded-xl bg-[#10b981]/10 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-[#10b981]" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <span className="text-neutral-700 dark:text-neutral-300">Real-time transaction tracking</span>
+                <span className="text-zinc-300">Real-time transaction tracking</span>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <div className="w-10 h-10 rounded-xl bg-[#0066ff]/10 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-[#0066ff]" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <span className="text-neutral-700 dark:text-neutral-300">Smart budget management</span>
+                <span className="text-zinc-300">Smart budget management</span>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                <div className="w-10 h-10 rounded-xl bg-[#f59e0b]/10 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-[#f59e0b]" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <span className="text-neutral-700 dark:text-neutral-300">Detailed financial reports</span>
+                <span className="text-zinc-300">Detailed financial reports</span>
               </div>
             </div>
           </div>
@@ -118,12 +121,12 @@ export default function LoginPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="bg-white dark:bg-neutral-900 rounded-3xl shadow-2xl p-8 border border-neutral-200 dark:border-neutral-800">
+          <div className="bg-[#0a0a0a] rounded-3xl shadow-2xl p-8 border border-[#262626]">
             <div className="mb-8">
-              <h2 className="text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
+              <h2 className="text-3xl font-bold font-mono text-[#0066ff] mb-2">
                 Welcome back
               </h2>
-              <p className="text-neutral-600 dark:text-neutral-400">
+              <p className="text-zinc-400">
                 Sign in to continue to your account
               </p>
             </div>
@@ -176,15 +179,15 @@ export default function LoginPage() {
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
-                      className="w-4 h-4 rounded border-neutral-300 text-blue-600 focus:ring-blue-500"
+                      className="w-4 h-4 rounded border-zinc-700 bg-[#1a1a1a] text-[#0066ff] focus:ring-[#0066ff]"
                     />
-                    <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                    <span className="text-sm text-zinc-400">
                       Remember me
                     </span>
                   </label>
                   <Link
                     href="/forgot-password"
-                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                    className="text-sm text-[#0066ff] hover:underline"
                   >
                     Forgot password?
                   </Link>
@@ -206,10 +209,10 @@ export default function LoginPage() {
             <div className="mt-6">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-neutral-300 dark:border-neutral-700" />
+                  <div className="w-full border-t border-[#262626]" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-white dark:bg-neutral-900 text-neutral-500 dark:text-neutral-400">
+                  <span className="px-4 bg-[#0a0a0a] text-zinc-500">
                     Or continue with
                   </span>
                 </div>
@@ -246,11 +249,11 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <p className="mt-8 text-center text-sm text-neutral-600 dark:text-neutral-400">
+            <p className="mt-8 text-center text-sm text-zinc-400">
               Don't have an account?{' '}
               <Link
                 href="/register"
-                className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                className="font-medium text-[#0066ff] hover:underline"
               >
                 Sign up for free
               </Link>

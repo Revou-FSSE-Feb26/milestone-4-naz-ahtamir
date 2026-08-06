@@ -29,45 +29,53 @@ export function StatCard({
     return (
       <Card>
         <div className="animate-pulse space-y-3">
-          <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-1/2" />
-          <div className="h-8 bg-neutral-200 dark:bg-neutral-800 rounded w-3/4" />
-          <div className="h-3 bg-neutral-200 dark:bg-neutral-800 rounded w-1/3" />
+          <div className="h-4 bg-[#1a1a1a] rounded w-1/2" />
+          <div className="h-8 bg-[#1a1a1a] rounded w-3/4" />
+          <div className="h-3 bg-[#1a1a1a] rounded w-1/3" />
         </div>
       </Card>
     );
   }
 
+  // Tentukan warna berdasarkan tipe stat
+  const isIncome = title.toLowerCase().includes('income');
+  const isExpense = title.toLowerCase().includes('expense');
+  
+  let valueColor = 'text-white';
+  if (isIncome) valueColor = 'text-[#10b981]'; // Hijau untuk income
+  if (isExpense) valueColor = 'text-[#ef4444]'; // Merah untuk expense
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      transition={{ duration: 0.2 }}
     >
       <Card hover className="group">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-2">
+            <p className="text-xs font-medium text-zinc-400 uppercase tracking-wide mb-3">
               {title}
             </p>
-            <p className="text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
+            <p className={cn("text-3xl font-bold mb-2 font-mono tracking-tight", valueColor)}>
               {typeof value === 'number' ? formatCurrency(value) : value}
             </p>
             {change !== undefined && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                 <span
                   className={cn(
-                    'text-sm font-medium',
+                    'text-sm font-semibold',
                     trend === 'up'
-                      ? 'text-green-600 dark:text-green-400'
+                      ? 'text-[#10b981]'
                       : trend === 'down'
-                      ? 'text-red-600 dark:text-red-400'
-                      : 'text-neutral-600 dark:text-neutral-400'
+                      ? 'text-[#ef4444]'
+                      : 'text-zinc-400'
                   )}
                 >
                   {formatPercentage(change)}
                 </span>
                 {changeLabel && (
-                  <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                  <span className="text-xs text-zinc-500">
                     {changeLabel}
                   </span>
                 )}
@@ -76,12 +84,12 @@ export function StatCard({
           </div>
           <div
             className={cn(
-              'p-3 rounded-xl bg-opacity-10 dark:bg-opacity-20',
+              'p-2.5 rounded-lg bg-opacity-10',
               iconColor.replace('text-', 'bg-'),
-              'group-hover:scale-110 transition-transform duration-200'
+              'group-hover:scale-105 transition-transform duration-150'
             )}
           >
-            <Icon className={cn('w-6 h-6', iconColor)} />
+            <Icon className={cn('w-5 h-5', iconColor)} />
           </div>
         </div>
       </Card>

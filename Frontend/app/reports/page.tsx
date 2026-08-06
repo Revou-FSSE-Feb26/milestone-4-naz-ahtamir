@@ -1,19 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
-import { Badge } from '@/components/ui/Badge';
 import {
   BarChart,
   Bar,
   LineChart,
   Line,
-  PieChart,
-  Pie,
-  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -22,48 +18,161 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { Download, Calendar, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
-import { formatCurrency, cn } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
+import { api } from '@/lib/api-client';
+
+interface Transaction {
+  id: string;
+  type: 'INCOME' | 'EXPENSE';
+  amount: number;
+  description: string;
+  transactionDate: string;
+  category: {
+    id: string;
+    name: string;
+    type: string;
+    color: string;
+  };
+}
 
 export default function ReportsPage() {
-  const [period, setPeriod] = useState('monthly');
-  const [selectedYear, setSelectedYear] = useState('2024');
+  const [selectedYear, setSelectedYear] = useState('2026');
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock data
-  const monthlyData = [
-    { month: 'Jan', income: 12000, expense: 8000, savings: 4000 },
-    { month: 'Feb', income: 13500, expense: 8500, savings: 5000 },
-    { month: 'Mar', income: 11800, expense: 7800, savings: 4000 },
-    { month: 'Apr', income: 14200, expense: 9200, savings: 5000 },
-    { month: 'May', income: 12800, expense: 8400, savings: 4400 },
-    { month: 'Jun', income: 12500, expense: 8234, savings: 4266 },
-  ];
+  // Fetch transactions from database
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        setIsLoading(true);
+        const year = parseInt(selectedYear);
+        const startDate = new Date(year, 0, 1).toISOString();
+        const endDate = new Date(year, 11, 31, 23, 59, 59, 999).toISOString();
+        
+        const response = await api.transactions.getAll({
+          startDate,
+          endDate,
+        });
+        
+        // Response is direct array, not paginated
+        const fetchedTransactions = Array.isArray(response.data) ? response.data : [];
+        
+        setTransactions(fetchedTransactions);
+      } catch (error) {
+        // Silently fail
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const categoryData = [
-    { name: 'Housing', value: 2800, color: '#3b82f6', percentage: 34 },
-    { name: 'Food', value: 1200, color: '#22c55e', percentage: 15 },
-    { name: 'Transportation', value: 800, color: '#f59e0b', percentage: 10 },
-    { name: 'Entertainment', value: 600, color: '#8b5cf6', percentage: 7 },
-    { name: 'Shopping', value: 1500, color: '#ef4444', percentage: 18 },
-    { name: 'Others', value: 1334, color: '#6b7280', percentage: 16 },
-  ];
+    fetchTransactions();
+  }, [selectedYear]);
 
-  const incomeSourceData = [
-    { source: 'Salary', amount: 5000, percentage: 71 },
-    { source: 'Freelance', amount: 1500, percentage: 21 },
-    { source: 'Investments', amount: 500, percentage: 7 },
-  ];
+  // Calculate monthly data from transactions
+  const monthlyData = useMemo(() => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthlyStats = months.map((month, index) => {
+      const monthTransactions = transactions.filter(t => {
+        const date = new Date(t.transactionDate);
+        return date.getMonth() === index;
+      });
 
-  const yearlyComparison = [
-    { year: '2021', income: 120000, expense: 90000 },
-    { year: '2022', income: 135000, expense: 95000 },
-    { year: '2023', income: 145000, expense: 100000 },
-    { year: '2024', income: 155000, expense: 105000 },
-  ];
+      const income = monthTransactions
+        .filter(t => t.type === 'INCOME')
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      
+      const expense = monthTransactions
+        .filter(t => t.type === 'EXPENSE')
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+
+      return {
+        month,
+        income,
+        expense,
+        savings: income - expense,
+      };
+    });
+
+    return monthlyStats;
+  }, [transactions]);
+
+  // Calculate expense by category
+  const categoryData = useMemo(() => {
+    const expenseTransactions = transactions.filter(t => t.type === 'EXPENSE');
+    const totalExpense = expenseTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
+
+    const categoryMap = new Map<string, { name: string; value: number; color: string }>();
+    
+    expenseTransactions.forEach(t => {
+      const existing = categoryMap.get(t.category.id);
+      if (existing) {
+        existing.value += Number(t.amount);
+      } else {
+        categoryMap.set(t.category.id, {
+          name: t.category.name,
+          value: Number(t.amount),
+          color: t.category.color || '#6b7280',
+        });
+      }
+    });
+
+    return Array.from(categoryMap.values())
+      .map(cat => ({
+        ...cat,
+        percentage: totalExpense > 0 ? Math.round((cat.value / totalExpense) * 100) : 0,
+      }))
+      .sort((a, b) => b.value - a.value);
+  }, [transactions]);
+
+  // Calculate income sources by category
+  const incomeSourceData = useMemo(() => {
+    const incomeTransactions = transactions.filter(t => t.type === 'INCOME');
+    const totalIncome = incomeTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
+
+    const sourceMap = new Map<string, { source: string; amount: number }>();
+    
+    incomeTransactions.forEach(t => {
+      const existing = sourceMap.get(t.category.id);
+      if (existing) {
+        existing.amount += Number(t.amount);
+      } else {
+        sourceMap.set(t.category.id, {
+          source: t.category.name,
+          amount: Number(t.amount),
+        });
+      }
+    });
+
+    return Array.from(sourceMap.values())
+      .map(src => ({
+        ...src,
+        percentage: totalIncome > 0 ? Math.round((src.amount / totalIncome) * 100) : 0,
+      }))
+      .sort((a, b) => b.amount - a.amount);
+  }, [transactions]);
+
+  // Calculate yearly comparison (current year only for now)
+  const yearlyComparison = useMemo(() => {
+    const year = parseInt(selectedYear);
+    const income = transactions
+      .filter(t => t.type === 'INCOME')
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+    const expense = transactions
+      .filter(t => t.type === 'EXPENSE')
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+    return [
+      { year: (year - 3).toString(), income: 0, expense: 0 },
+      { year: (year - 2).toString(), income: 0, expense: 0 },
+      { year: (year - 1).toString(), income: 0, expense: 0 },
+      { year: year.toString(), income, expense },
+    ];
+  }, [transactions, selectedYear]);
 
   const totalIncome = monthlyData.reduce((sum, m) => sum + m.income, 0);
   const totalExpense = monthlyData.reduce((sum, m) => sum + m.expense, 0);
-  const totalSavings = monthlyData.reduce((sum, m) => sum + m.savings, 0);
-  const savingsRate = ((totalSavings / totalIncome) * 100).toFixed(1);
+  const totalSavings = totalIncome - totalExpense;
+  const savingsRate = totalIncome > 0 ? ((totalSavings / totalIncome) * 100).toFixed(1) : '0.0';
 
   return (
     <DashboardLayout>
@@ -71,10 +180,10 @@ export default function ReportsPage() {
         {/* Page Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
+            <h1 className="text-3xl font-bold font-mono text-[#0066ff] mb-2">
               Financial Reports
             </h1>
-            <p className="text-neutral-600 dark:text-neutral-400">
+            <p className="text-zinc-400">
               Detailed insights and analytics about your finances
             </p>
           </div>
@@ -83,9 +192,9 @@ export default function ReportsPage() {
               value={selectedYear}
               onChange={(e) => setSelectedYear(e.target.value)}
               options={[
+                { value: '2026', label: '2026' },
+                { value: '2025', label: '2025' },
                 { value: '2024', label: '2024' },
-                { value: '2023', label: '2023' },
-                { value: '2022', label: '2022' },
               ]}
             />
             <Button variant="outline" leftIcon={<Download className="w-4 h-4" />}>
@@ -94,20 +203,31 @@ export default function ReportsPage() {
           </div>
         </div>
 
+        {/* Loading State */}
+        {isLoading ? (
+          <Card>
+            <CardContent>
+              <div className="flex items-center justify-center py-12">
+                <p className="text-zinc-400 font-mono">Loading reports...</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-1">
+                <p className="text-sm font-medium text-zinc-400 mb-1">
                   Total Income
                 </p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                <p className="text-2xl font-bold font-mono text-[#10b981]">
                   {formatCurrency(totalIncome)}
                 </p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-green-600 dark:text-green-400" />
+              <div className="w-12 h-12 rounded-xl bg-[#10b981]/10 flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-[#10b981]" />
               </div>
             </div>
           </Card>
@@ -115,15 +235,15 @@ export default function ReportsPage() {
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-1">
+                <p className="text-sm font-medium text-zinc-400 mb-1">
                   Total Expenses
                 </p>
-                <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                <p className="text-2xl font-bold font-mono text-[#ef4444]">
                   {formatCurrency(totalExpense)}
                 </p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
-                <TrendingDown className="w-6 h-6 text-red-600 dark:text-red-400" />
+              <div className="w-12 h-12 rounded-xl bg-[#ef4444]/10 flex items-center justify-center">
+                <TrendingDown className="w-6 h-6 text-[#ef4444]" />
               </div>
             </div>
           </Card>
@@ -131,15 +251,15 @@ export default function ReportsPage() {
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-1">
+                <p className="text-sm font-medium text-zinc-400 mb-1">
                   Total Savings
                 </p>
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                <p className="text-2xl font-bold font-mono text-[#0066ff]">
                   {formatCurrency(totalSavings)}
                 </p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <div className="w-12 h-12 rounded-xl bg-[#0066ff]/10 flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-[#0066ff]" />
               </div>
             </div>
           </Card>
@@ -147,15 +267,15 @@ export default function ReportsPage() {
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-1">
+                <p className="text-sm font-medium text-zinc-400 mb-1">
                   Savings Rate
                 </p>
-                <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
+                <p className="text-2xl font-bold font-mono text-white">
                   {savingsRate}%
                 </p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              <div className="w-12 h-12 rounded-xl bg-[#f59e0b]/10 flex items-center justify-center">
+                <Calendar className="w-6 h-6 text-[#f59e0b]" />
               </div>
             </div>
           </Card>
@@ -170,7 +290,6 @@ export default function ReportsPage() {
           <CardContent>
             <ResponsiveContainer width="100%" height={350}>
               <BarChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" opacity={0.5} />
                 <XAxis dataKey="month" stroke="#737373" fontSize={12} />
                 <YAxis stroke="#737373" fontSize={12} tickFormatter={(value) => `$${value / 1000}k`} />
                 <Tooltip
@@ -201,7 +320,12 @@ export default function ReportsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {categoryData.map((category) => (
+                {categoryData.length === 0 ? (
+                  <p className="text-center text-zinc-400 py-4">
+                    No expense data available for this period
+                  </p>
+                ) : (
+                  categoryData.map((category) => (
                   <div key={category.name} className="space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -209,20 +333,20 @@ export default function ReportsPage() {
                           className="w-3 h-3 rounded-full"
                           style={{ backgroundColor: category.color }}
                         />
-                        <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                        <span className="text-sm font-medium text-white">
                           {category.name}
                         </span>
                       </div>
                       <div className="text-right">
-                        <span className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                        <span className="text-sm font-semibold font-mono text-white">
                           {formatCurrency(category.value)}
                         </span>
-                        <span className="text-xs text-neutral-500 dark:text-neutral-400 ml-2">
+                        <span className="text-xs text-zinc-400 ml-2">
                           {category.percentage}%
                         </span>
                       </div>
                     </div>
-                    <div className="relative h-2 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
+                    <div className="relative h-2 bg-[#1a1a1a] rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full"
                         style={{
@@ -232,7 +356,8 @@ export default function ReportsPage() {
                       />
                     </div>
                   </div>
-                ))}
+                ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -245,26 +370,32 @@ export default function ReportsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {incomeSourceData.map((source, index) => (
+                {incomeSourceData.length === 0 ? (
+                  <p className="text-center text-zinc-400 py-4">
+                    No income data available for this period
+                  </p>
+                ) : (
+                  incomeSourceData.map((source, index) => (
                   <div key={source.source} className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-medium text-neutral-900 dark:text-neutral-100">
+                        <p className="font-medium text-white">
                           {source.source}
                         </p>
-                        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                        <p className="text-sm text-zinc-400">
                           {source.percentage}% of total income
                         </p>
                       </div>
-                      <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                      <p className="text-lg font-bold font-mono text-[#10b981]">
                         {formatCurrency(source.amount)}
                       </p>
                     </div>
                     {index < incomeSourceData.length - 1 && (
-                      <div className="border-b border-neutral-200 dark:border-neutral-800" />
+                      <div className="border-b border-[#262626]" />
                     )}
                   </div>
-                ))}
+                ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -279,7 +410,6 @@ export default function ReportsPage() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={yearlyComparison}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" opacity={0.5} />
                 <XAxis dataKey="year" stroke="#737373" fontSize={12} />
                 <YAxis stroke="#737373" fontSize={12} tickFormatter={(value) => `$${value / 1000}k`} />
                 <Tooltip
@@ -312,6 +442,8 @@ export default function ReportsPage() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
+        </>
+        )}
       </div>
     </DashboardLayout>
   );

@@ -1,23 +1,11 @@
-// src/transactions/transactions.controller.ts
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  UseGuards,
-  Query,
-  ParseIntPipe,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { TransactionsService } from './transactions.service';
 import { CreateTransactionDto, UpdateTransactionDto } from './dto/transaction.dto';
 import { JwtAuthGuard } from '../auth/auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @Controller('api/transactions')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard) // <-- AKTIFKAN GUARD
 export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
 
@@ -30,8 +18,12 @@ export class TransactionsController {
   }
 
   @Get()
-  findAll(@CurrentUser() user: any) {
-    return this.transactionsService.findAll(user.id);
+  findAll(
+    @CurrentUser() user: any,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.transactionsService.findAll(user.id, startDate, endDate);
   }
 
   @Get('stats')

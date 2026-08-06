@@ -28,8 +28,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ) => {
     const baseStyles = [
       'inline-flex items-center justify-center',
-      'font-medium rounded-xl',
-      'transition-all duration-200',
+      'font-semibold rounded-lg',
+      'transition-all duration-150',
       'focus:outline-none focus:ring-2 focus:ring-offset-2',
       'disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none',
       fullWidth && 'w-full',
@@ -37,43 +37,39 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variants = {
       primary: [
-        'bg-blue-600 text-white',
-        'hover:bg-blue-700',
-        'focus:ring-blue-500',
-        'shadow-sm hover:shadow-md',
+        'bg-[#0066ff] text-white',
+        'hover:bg-[#0052cc]',
+        'focus:ring-[#0066ff]',
+        'shadow-sm',
       ],
       secondary: [
-        'bg-neutral-100 text-neutral-900',
-        'hover:bg-neutral-200',
-        'dark:bg-neutral-800 dark:text-neutral-100',
-        'dark:hover:bg-neutral-700',
-        'focus:ring-neutral-500',
+        'bg-[#1a1a1a] text-white',
+        'hover:bg-[#262626]',
+        'border border-zinc-700',
+        'focus:ring-zinc-500',
       ],
       outline: [
-        'border border-neutral-300 bg-transparent text-neutral-700',
-        'hover:bg-neutral-50',
-        'dark:border-neutral-700 dark:text-neutral-300',
-        'dark:hover:bg-neutral-800',
-        'focus:ring-neutral-500',
+        'border border-zinc-700 bg-transparent text-zinc-300',
+        'hover:bg-[#1a1a1a]',
+        'focus:ring-zinc-500',
       ],
       ghost: [
-        'bg-transparent text-neutral-700',
-        'hover:bg-neutral-100',
-        'dark:text-neutral-300 dark:hover:bg-neutral-800',
-        'focus:ring-neutral-500',
+        'bg-transparent text-zinc-300',
+        'hover:bg-[#1a1a1a]',
+        'focus:ring-zinc-500',
       ],
       danger: [
-        'bg-red-600 text-white',
-        'hover:bg-red-700',
-        'focus:ring-red-500',
-        'shadow-sm hover:shadow-md',
+        'bg-[#ef4444] text-white',
+        'hover:bg-[#dc2626]',
+        'focus:ring-[#ef4444]',
+        'shadow-sm',
       ],
     };
 
     const sizes = {
-      sm: 'px-3 py-1.5 text-sm gap-1.5',
-      md: 'px-4 py-2 text-sm gap-2',
-      lg: 'px-6 py-3 text-base gap-2',
+      sm: 'h-9 px-3 text-sm gap-1.5',
+      md: 'h-10 px-4 text-sm gap-2',
+      lg: 'h-12 px-6 text-base gap-2',
     };
 
     return (

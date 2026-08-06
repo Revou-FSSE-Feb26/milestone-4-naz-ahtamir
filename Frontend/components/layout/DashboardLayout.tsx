@@ -13,7 +13,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
+    <div className="min-h-screen bg-black">
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
@@ -30,7 +30,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             email: 'john@example.com',
           }}
         />
-        <main className="p-6">{children}</main>
+        <main className="p-6 md:p-8">{children}</main>
       </div>
     </div>
   );

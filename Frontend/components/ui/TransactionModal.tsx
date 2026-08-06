@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Wallet, Receipt, ChevronDown, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useAuthStore } from '@/lib/store/auth.store';
+import { api } from '@/lib/api-client';
 import { Button } from './Button';
 import { Input } from './Input';
 import { Select } from './Select';
@@ -92,43 +93,29 @@ export function TransactionModal({ isOpen, onClose, defaultType = 'expense', onS
     try {
       setIsLoading(true);
 
-      // Fetch categories
-      const catResponse = await fetch('http://localhost:3000/api/categories', {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      if (catResponse.ok) {
-        const catData = await catResponse.json();
-        setCategories(catData);
-        // Set default category
-        if (catData.length > 0 && formData.category === '') {
-          setFormData(prev => ({ ...prev, category: String(catData[0].id) }));
-        }
-      } else {
-        console.error('Failed to fetch categories:', catResponse.status);
+      // Fetch categories and accounts in parallel
+      const [catResponse, accResponse] = await Promise.all([
+        api.categories.getAll(),
+        api.accounts.getAll()
+      ]);
+      
+      const catData = catResponse.data;
+      setCategories(catData);
+      // Set default category
+      if (catData.length > 0 && formData.category === '') {
+        setFormData(prev => ({ ...prev, category: String(catData[0].id) }));
       }
 
-      // Fetch accounts
-      const accResponse = await fetch('http://localhost:3000/api/accounts', {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      if (accResponse.ok) {
-        const accData = await accResponse.json();
-        setAccounts(accData);
-        // Set default account
-        if (accData.length > 0 && formData.account === '') {
-          setFormData(prev => ({ ...prev, account: String(accData[0].id) }));
-        }
-      } else {
-        console.error('Failed to fetch accounts:', accResponse.status);
+      const accData = accResponse.data;
+      setAccounts(accData);
+      // Set default account
+      if (accData.length > 0 && formData.account === '') {
+        setFormData(prev => ({ ...prev, account: String(accData[0].id) }));
       }
     } catch (error) {
-      console.error('Error fetching categories/accounts:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching categories/accounts:', error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -144,33 +131,21 @@ export function TransactionModal({ isOpen, onClose, defaultType = 'expense', onS
     if (formData.amount && formData.description) {
       try {
         // Call API to create transaction
-        const response = await fetch('http://localhost:3000/api/transactions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            type: formData.type.toUpperCase(),
-            amount: parseFloat(formData.amount),
-            description: formData.description,
-            categoryId: parseInt(formData.category) || undefined,
-            accountId: parseInt(formData.account),
-            date: formData.date,
-          }),
+        await api.transactions.create({
+          type: formData.type.toUpperCase(),
+          amount: parseFloat(formData.amount),
+          description: formData.description,
+          categoryId: parseInt(formData.category) || undefined,
+          accountId: parseInt(formData.account),
+          date: formData.date,
         });
 
-        if (!response.ok) {
-          throw new Error(`Failed to create transaction: ${response.status}`);
-        }
-
-        const result = await response.json();
-        onSave?.(result);
+        alert('Transaction created successfully!');
+        onSave?.();
         onClose();
         resetForm();
       } catch (error) {
-        console.error('Error creating transaction:', error);
-        alert('Failed to save transaction. Please try again.');
+        // Silently fail or show user-friendly error
       }
     }
   };
@@ -212,30 +187,30 @@ export function TransactionModal({ isOpen, onClose, defaultType = 'expense', onS
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-neutral-900 rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-neutral-200 dark:border-neutral-800"
+              className="bg-[#0a0a0a] rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-[#262626]"
             >
               {/* Header */}
-              <div className="p-6 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between sticky top-0 bg-white dark:bg-neutral-900 z-10">
+              <div className="p-6 border-b border-[#262626] flex items-center justify-between sticky top-0 bg-[#0a0a0a] z-10">
                 <div>
-                  <h3 className="text-xl font-bold text-neutral-900 dark:text-neutral-100">
+                  <h3 className="text-xl font-bold font-mono text-[#0066ff]">
                     Add Transaction
                   </h3>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                  <p className="text-sm text-zinc-400">
                     Record a new financial transaction
                   </p>
                 </div>
                 <button
                   onClick={onClose}
-                  className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                  className="p-2 rounded-xl hover:bg-[#1a1a1a] transition-colors"
                 >
-                  <X className="w-5 h-5 text-neutral-500" />
+                  <X className="w-5 h-5 text-zinc-500" />
                 </button>
               </div>
 
               <form onSubmit={handleSubmit} className="p-6 space-y-6">
                 {/* Transaction Type */}
                 <div className="space-y-3">
-                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  <label className="block text-sm font-medium text-zinc-400">
                     Transaction Type
                   </label>
                   <div className="grid grid-cols-3 gap-2">
@@ -250,8 +225,8 @@ export function TransactionModal({ isOpen, onClose, defaultType = 'expense', onS
                         className={cn(
                           'flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-200',
                           formData.type === type
-                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                            : 'border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800'
+                            ? 'border-[#0066ff] bg-[#0066ff]/10 text-[#0066ff]'
+                            : 'border-zinc-700 text-zinc-400 hover:bg-[#1a1a1a]'
                         )}
                       >
                         {type === 'income' && <ArrowDownLeft className="w-5 h-5 mb-1" />}
@@ -265,11 +240,11 @@ export function TransactionModal({ isOpen, onClose, defaultType = 'expense', onS
 
                 {/* Amount */}
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  <label className="block text-sm font-medium text-zinc-400">
                     Amount
                   </label>
                   <div className="relative" onClick={(e) => e.stopPropagation()}>
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-semibold text-neutral-500 dark:text-neutral-400">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-semibold font-mono text-zinc-500">
                       $
                     </span>
                     <Input
@@ -277,7 +252,7 @@ export function TransactionModal({ isOpen, onClose, defaultType = 'expense', onS
                       placeholder="0.00"
                       value={formData.amount}
                       onChange={handleAmountChange}
-                      className="pl-10 text-2xl font-bold"
+                      className="pl-10 text-2xl font-bold font-mono"
                       inputMode="decimal"
                     />
                   </div>
@@ -285,7 +260,7 @@ export function TransactionModal({ isOpen, onClose, defaultType = 'expense', onS
 
                 {/* Description */}
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  <label className="block text-sm font-medium text-zinc-400">
                     Description
                   </label>
                   <div onClick={(e) => e.stopPropagation()}>
@@ -299,7 +274,7 @@ export function TransactionModal({ isOpen, onClose, defaultType = 'expense', onS
 
                 {/* Category Dropdown */}
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  <label className="block text-sm font-medium text-zinc-400">
                     Category
                   </label>
                   <div className="relative">
@@ -309,15 +284,15 @@ export function TransactionModal({ isOpen, onClose, defaultType = 'expense', onS
                         e.stopPropagation();
                         setShowCategoryDropdown(!showCategoryDropdown);
                       }}
-                      className="w-full flex items-center justify-between p-3 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+                      className="w-full flex items-center justify-between p-3 rounded-xl border border-zinc-700 bg-[#1a1a1a] hover:bg-[#262626] transition-colors"
                     >
                       <div className="flex items-center gap-3">
                         <span className="text-2xl">{selectedCategoryIcon}</span>
-                        <span className="font-medium text-neutral-900 dark:text-neutral-100">
+                        <span className="font-medium text-white">
                           {currentCategory?.name || 'Select Category'}
                         </span>
                       </div>
-                      <ChevronDown className="w-4 h-4 text-neutral-400" />
+                      <ChevronDown className="w-4 h-4 text-zinc-500" />
                     </button>
 
                     {/* Category Dropdown */}
@@ -327,10 +302,10 @@ export function TransactionModal({ isOpen, onClose, defaultType = 'expense', onS
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
                         onClick={(e) => e.stopPropagation()}
-                        className="absolute z-50 w-full mt-2 bg-white dark:bg-neutral-900 rounded-xl shadow-xl border border-neutral-200 dark:border-neutral-800 overflow-hidden max-h-64 overflow-y-auto"
+                        className="absolute z-50 w-full mt-2 bg-[#1a1a1a] rounded-xl shadow-xl border border-[#262626] overflow-hidden max-h-64 overflow-y-auto"
                       >
-                        <div className="px-4 py-2 bg-neutral-50 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
-                          <span className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+                        <div className="px-4 py-2 bg-[#0a0a0a] border-b border-[#262626]">
+                          <span className="text-xs font-semibold text-zinc-500">
                             {formData.type === 'income' ? 'Income Categories' : 'Expense Categories'}
                           </span>
                         </div>
@@ -344,15 +319,15 @@ export function TransactionModal({ isOpen, onClose, defaultType = 'expense', onS
                                 setFormData({ ...formData, category: String(category.id) });
                                 setShowCategoryDropdown(false);
                               }}
-                              className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                              className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-[#262626] transition-colors"
                             >
                               <span className="text-xl">{categoryIcons[category.name] || '🏷️'}</span>
-                              <span className="font-medium text-neutral-900 dark:text-neutral-100">
+                              <span className="font-medium text-white">
                                 {category.name}
                               </span>
                               {formData.category === String(category.id) && (
                                 <div className="ml-auto">
-                                  <div className="w-2 h-2 rounded-full bg-blue-500" />
+                                  <div className="w-2 h-2 rounded-full bg-[#0066ff]" />
                                 </div>
                               )}
                             </button>
@@ -365,7 +340,7 @@ export function TransactionModal({ isOpen, onClose, defaultType = 'expense', onS
 
                 {/* Account */}
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  <label className="block text-sm font-medium text-zinc-400">
                     Account
                   </label>
                   <div className="relative" onClick={(e) => e.stopPropagation()}>
@@ -382,7 +357,7 @@ export function TransactionModal({ isOpen, onClose, defaultType = 'expense', onS
 
                 {/* Date */}
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  <label className="block text-sm font-medium text-zinc-400">
                     Date
                   </label>
                   <div className="relative" onClick={(e) => e.stopPropagation()}>
@@ -390,7 +365,7 @@ export function TransactionModal({ isOpen, onClose, defaultType = 'expense', onS
                       type="date"
                       value={formData.date}
                       onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                      className="w-full rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-4 py-2.5 text-sm text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full rounded-xl border border-zinc-700 bg-[#1a1a1a] px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#0066ff]"
                     />
                   </div>
                 </div>

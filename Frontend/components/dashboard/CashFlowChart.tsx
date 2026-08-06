@@ -1,9 +1,8 @@
 'use client';
 
-import React from 'react';
 import {
-  AreaChart,
-  Area,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -29,12 +28,12 @@ export function CashFlowChart({ data, isLoading }: CashFlowChartProps) {
       <Card>
         <CardHeader>
           <div className="animate-pulse space-y-2">
-            <div className="h-5 bg-neutral-200 dark:bg-neutral-800 rounded w-1/4" />
-            <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-1/2" />
+            <div className="h-5 bg-[#1a1a1a] rounded w-1/4" />
+            <div className="h-4 bg-[#1a1a1a] rounded w-1/2" />
           </div>
         </CardHeader>
         <CardContent>
-          <div className="h-80 bg-neutral-100 dark:bg-neutral-900 rounded animate-pulse" />
+          <div className="h-80 bg-[#1a1a1a] rounded animate-pulse" />
         </CardContent>
       </Card>
     );
@@ -43,8 +42,8 @@ export function CashFlowChart({ data, isLoading }: CashFlowChartProps) {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-4 shadow-lg">
-          <p className="font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
+        <div className="bg-[#1a1a1a] border border-[#262626] rounded-lg p-3 shadow-xl">
+          <p className="font-semibold text-white mb-2 text-sm">
             {label}
           </p>
           {payload.map((entry: any, index: number) => (
@@ -74,61 +73,55 @@ export function CashFlowChart({ data, isLoading }: CashFlowChartProps) {
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={320}>
-          <AreaChart
+          <LineChart
             data={data}
             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
           >
-            <defs>
-              <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" opacity={0.5} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#262626" opacity={0.5} vertical={false} />
             <XAxis
               dataKey="month"
-              stroke="#737373"
+              stroke="#6b7280"
               fontSize={12}
               tickLine={false}
               axisLine={false}
             />
             <YAxis
-              stroke="#737373"
+              stroke="#6b7280"
               fontSize={12}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(value) => `$${value / 1000}k`}
+              tickFormatter={(value) => {
+                if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+                if (value >= 1000) return `${(value / 1000).toFixed(0)}k`;
+                return value.toString();
+              }}
             />
             <Tooltip content={<CustomTooltip />} />
             <Legend
               wrapperStyle={{
                 paddingTop: '20px',
               }}
-              iconType="circle"
+              iconType="line"
             />
-            <Area
+            <Line
               type="monotone"
               dataKey="income"
-              stroke="#22c55e"
-              strokeWidth={2}
-              fillOpacity={1}
-              fill="url(#incomeGradient)"
+              stroke="#10b981"
+              strokeWidth={2.5}
+              dot={{ fill: '#10b981', strokeWidth: 0, r: 4 }}
+              activeDot={{ r: 6, strokeWidth: 0, fill: '#10b981' }}
               name="Income"
             />
-            <Area
+            <Line
               type="monotone"
               dataKey="expense"
               stroke="#ef4444"
-              strokeWidth={2}
-              fillOpacity={1}
-              fill="url(#expenseGradient)"
+              strokeWidth={2.5}
+              dot={{ fill: '#ef4444', strokeWidth: 0, r: 4 }}
+              activeDot={{ r: 6, strokeWidth: 0, fill: '#ef4444' }}
               name="Expenses"
             />
-          </AreaChart>
+          </LineChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>

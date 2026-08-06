@@ -22,7 +22,7 @@ export function TableHeader({
   return (
     <thead
       className={cn(
-        'border-b border-neutral-200 dark:border-neutral-800',
+        'border-b border-slate-200 dark:border-slate-700',
         className
       )}
       {...props}
@@ -44,7 +44,7 @@ export function TableFooter({
   return (
     <tfoot
       className={cn(
-        'border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 font-medium',
+        'border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 font-medium',
         className
       )}
       {...props}
@@ -59,9 +59,9 @@ export function TableRow({
   return (
     <tr
       className={cn(
-        'border-b border-neutral-200 dark:border-neutral-800 transition-colors',
-        'hover:bg-neutral-50 dark:hover:bg-neutral-900/50',
-        'data-[state=selected]:bg-neutral-100 dark:data-[state=selected]:bg-neutral-800',
+        'border-b border-slate-200 dark:border-slate-800 transition-colors',
+        'hover:bg-slate-50 dark:hover:bg-slate-900/50',
+        'data-[state=selected]:bg-slate-100 dark:data-[state=selected]:bg-slate-800',
         className
       )}
       {...props}
@@ -76,7 +76,7 @@ export function TableHead({
   return (
     <th
       className={cn(
-        'h-12 px-4 text-left align-middle font-semibold text-neutral-700 dark:text-neutral-300',
+        'h-11 px-4 text-left align-middle font-semibold text-slate-600 dark:text-slate-400 text-xs uppercase tracking-wide',
         '[&:has([role=checkbox])]:pr-0',
         className
       )}
@@ -92,7 +92,7 @@ export function TableCell({
   return (
     <td
       className={cn(
-        'p-4 align-middle text-neutral-900 dark:text-neutral-100',
+        'p-4 align-middle text-slate-900 dark:text-slate-100',
         '[&:has([role=checkbox])]:pr-0',
         className
       )}
@@ -107,7 +107,7 @@ export function TableCaption({
 }: React.HTMLAttributes<HTMLTableCaptionElement>) {
   return (
     <caption
-      className={cn('mt-4 text-sm text-neutral-500 dark:text-neutral-400', className)}
+      className={cn('mt-4 text-sm text-slate-500 dark:text-slate-400', className)}
       {...props}
     />
   );

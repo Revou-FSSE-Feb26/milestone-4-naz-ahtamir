@@ -17,25 +17,27 @@ export default function BudgetsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [period, setPeriod] = useState('monthly');
   
-  const now = new Date();
-  const currentMonth = now.getMonth() + 1;
-  const currentYear = now.getFullYear();
+  // State untuk filter month/year
+  const [selectedMonth, setSelectedMonth] = useState(8); // August (seed data)
+  const [selectedYear, setSelectedYear] = useState(2026); // 2026 (seed data)
 
-  // Fetch budgets data
-  const { data: budgets = [], isLoading } = useGetBudgets(currentMonth, currentYear);
-  const { data: summary } = useGetBudgetSummary(currentMonth, currentYear);
+  // Fetch budgets data dengan filter
+  const { data: budgets = [], isLoading } = useGetBudgets(selectedMonth, selectedYear);
+  const { data: summaryData } = useGetBudgetSummary(selectedMonth, selectedYear);
   
   // Mutations
   const createBudgetMutation = useCreateBudget();
   const deleteBudgetMutation = useDeleteBudget();
+
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
   const handleSaveBudget = async (budgetData: BudgetFormData) => {
     try {
       await createBudgetMutation.mutateAsync({
         categoryId: parseInt(budgetData.category),
         amount: parseFloat(budgetData.limitAmount),
-        month: budgetData.period === 'monthly' ? currentMonth : 1,
-        year: currentYear,
+        month: selectedMonth,
+        year: selectedYear,
         alertThreshold: 80,
       });
       toast.success('Budget created successfully!');
@@ -73,6 +75,14 @@ export default function BudgetsPage() {
     );
   }
 
+  // Use summary data if available, otherwise calculate from budgets
+  const summary = summaryData || {
+    totalBudget: budgets.reduce((sum, b) => sum + parseFloat(b.amount), 0),
+    totalSpent: budgets.reduce((sum, b) => sum + (b.spent || 0), 0),
+    onTrack: budgets.filter(b => (b.percentage || 0) <= 100 && (b.percentage || 0) >= 50).length,
+    overBudget: budgets.filter(b => (b.percentage || 0) > 100).length,
+  };
+
   const totalBudget = summary?.totalBudget || 0;
   const totalSpent = summary?.totalSpent || 0;
   const onTrackCount = summary?.onTrack || 0;
@@ -84,20 +94,42 @@ export default function BudgetsPage() {
         {/* Page Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
+            <h1 className="text-3xl font-bold font-mono text-[#0066ff] mb-2">
               Budgets
             </h1>
-            <p className="text-neutral-600 dark:text-neutral-400">
+            <p className="text-zinc-400">
               Set and track spending limits for different categories
             </p>
           </div>
-          <Button
-            variant="primary"
-            leftIcon={<Plus className="w-4 h-4" />}
-            onClick={() => setIsModalOpen(true)}
-          >
-            Create Budget
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Month/Year Selector */}
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+              className="px-3 py-2 rounded-lg border border-zinc-700 bg-[#1a1a1a] text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#0066ff]"
+            >
+              {monthNames.map((m, i) => (
+                <option key={i} value={i + 1}>{m}</option>
+              ))}
+            </select>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              className="px-3 py-2 rounded-lg border border-zinc-700 bg-[#1a1a1a] text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#0066ff]"
+            >
+              {Array.from({ length: 5 }).map((_, i) => {
+                const y = 2026 - i; // Start from 2026 to match seed data
+                return <option key={y} value={y}>{y}</option>;
+              })}
+            </select>
+            <Button
+              variant="primary"
+              leftIcon={<Plus className="w-4 h-4" />}
+              onClick={() => setIsModalOpen(true)}
+            >
+              Create Budget
+            </Button>
+          </div>
         </div>
 
         {/* Summary Cards */}
@@ -105,15 +137,15 @@ export default function BudgetsPage() {
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-1">
+                <p className="text-sm font-medium text-zinc-400 mb-1">
                   Total Budget
                 </p>
-                <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
+                <p className="text-2xl font-bold font-mono text-white">
                   {formatCurrency(totalBudget)}
                 </p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-                <PiggyBank className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <div className="w-12 h-12 rounded-xl bg-[#0066ff]/10 flex items-center justify-center">
+                <PiggyBank className="w-6 h-6 text-[#0066ff]" />
               </div>
             </div>
           </Card>
@@ -121,15 +153,15 @@ export default function BudgetsPage() {
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-1">
+                <p className="text-sm font-medium text-zinc-400 mb-1">
                   Total Spent
                 </p>
-                <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
+                <p className="text-2xl font-bold font-mono text-white">
                   {formatCurrency(totalSpent)}
                 </p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              <div className="w-12 h-12 rounded-xl bg-[#f59e0b]/10 flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-[#f59e0b]" />
               </div>
             </div>
           </Card>
@@ -137,15 +169,15 @@ export default function BudgetsPage() {
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-1">
+                <p className="text-sm font-medium text-zinc-400 mb-1">
                   On Track
                 </p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                <p className="text-2xl font-bold font-mono text-[#10b981]">
                   {onTrackCount}
                 </p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
+              <div className="w-12 h-12 rounded-xl bg-[#10b981]/10 flex items-center justify-center">
+                <CheckCircle className="w-6 h-6 text-[#10b981]" />
               </div>
             </div>
           </Card>
@@ -153,15 +185,15 @@ export default function BudgetsPage() {
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-1">
+                <p className="text-sm font-medium text-zinc-400 mb-1">
                   Over Budget
                 </p>
-                <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                <p className="text-2xl font-bold font-mono text-[#ef4444]">
                   {overBudgetCount}
                 </p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
-                <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
+              <div className="w-12 h-12 rounded-xl bg-[#ef4444]/10 flex items-center justify-center">
+                <AlertCircle className="w-6 h-6 text-[#ef4444]" />
               </div>
             </div>
           </Card>
@@ -178,10 +210,10 @@ export default function BudgetsPage() {
                 </CardDescription>
               </div>
               <div className="text-right">
-                <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
+                <p className="text-2xl font-bold font-mono text-white">
                   {calculatePercentage(totalSpent, totalBudget).toFixed(0)}%
                 </p>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                <p className="text-sm text-zinc-400">
                   {formatCurrency(totalBudget - totalSpent)} remaining
                 </p>
               </div>
@@ -246,10 +278,10 @@ export default function BudgetsPage() {
                           {budget.category.icon}
                         </div>
                         <div>
-                          <h3 className="font-semibold text-neutral-900 dark:text-neutral-100">
+                          <h3 className="font-semibold text-white">
                             {budget.category.name}
                           </h3>
-                          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                          <p className="text-xs text-zinc-400">
                             Monthly Budget
                           </p>
                         </div>
@@ -265,23 +297,23 @@ export default function BudgetsPage() {
 
                     <div className="space-y-2 mb-4">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                        <span className="text-sm text-zinc-400">
                           {formatCurrency(budget.spent || 0)} / {formatCurrency(parseFloat(budget.amount))}
                         </span>
                         <span
                           className={cn(
-                            'text-sm font-semibold',
+                            'text-sm font-semibold font-mono',
                             status === 'over'
-                              ? 'text-red-600 dark:text-red-400'
+                              ? 'text-[#ef4444]'
                               : status === 'warning'
-                              ? 'text-yellow-600 dark:text-yellow-400'
-                              : 'text-neutral-600 dark:text-neutral-400'
+                              ? 'text-[#f59e0b]'
+                              : 'text-zinc-400'
                           )}
                         >
                           {percentage.toFixed(0)}%
                         </span>
                       </div>
-                      <div className="relative h-2 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
+                      <div className="relative h-2 bg-[#1a1a1a] rounded-full overflow-hidden">
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${Math.min(percentage, 100)}%` }}
@@ -298,17 +330,17 @@ export default function BudgetsPage() {
                       </div>
                     </div>
 
-                    <div className="pt-4 border-t border-neutral-200 dark:border-neutral-800">
+                    <div className="pt-4 border-t border-[#262626]">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                        <span className="text-xs text-zinc-400">
                           {remaining >= 0 ? 'Remaining' : 'Over by'}
                         </span>
                         <span
                           className={cn(
-                            'text-sm font-semibold',
+                            'text-sm font-semibold font-mono',
                             remaining >= 0
-                              ? 'text-green-600 dark:text-green-400'
-                              : 'text-red-600 dark:text-red-400'
+                              ? 'text-[#10b981]'
+                              : 'text-[#ef4444]'
                           )}
                         >
                           {formatCurrency(Math.abs(remaining))}

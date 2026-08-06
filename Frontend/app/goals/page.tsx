@@ -1,75 +1,136 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
+import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { GoalModal } from '@/components/ui/GoalModal';
 import { Plus, Target, TrendingUp, Calendar, DollarSign, Flag } from 'lucide-react';
-import { formatCurrency, calculatePercentage, cn } from '@/lib/utils';
+import { formatCurrency, calculatePercentage } from '@/lib/utils';
+import { api } from '@/lib/api-client';
+
+interface Goal {
+  id: string;
+  title: string;
+  description: string | null;
+  category: string;
+  targetAmount: number;
+  currentAmount: number;
+  targetDate: string;
+  startDate: string;
+  priority: number;
+}
+
+interface GoalWithStatus extends Goal {
+  status: 'achieved' | 'on-track' | 'at-risk';
+  color: string;
+}
 
 export default function GoalsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [goals, setGoals] = useState<GoalWithStatus[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const handleSaveGoal = (goalData: any) => {
-    console.log('Goal created:', goalData);
-    // TODO: Integrate with backend API
+  const handleSaveGoal = async (goalData: any) => {
+    try {
+      // Map modal category to API category format
+      const categoryMap: Record<string, string> = {
+        'savings': 'Saving',
+        'travel': 'Travel',
+        'electronics': 'Electronics',
+        'real-estate': 'Real Estate',
+        'education': 'Education',
+        'car': 'Car',
+        'investment': 'Investment',
+        'other': 'Other',
+      };
+
+      await api.goals.create({
+        name: goalData.name,
+        description: goalData.description || null,
+        category: categoryMap[goalData.category] || 'Other',
+        targetAmount: parseFloat(goalData.targetAmount),
+        currentAmount: parseFloat(goalData.currentAmount) || 0,
+        targetDate: new Date(goalData.targetDate).toISOString(),
+        priority: 1,
+      });
+
+      // Refresh goals list
+      setRefreshKey(prev => prev + 1);
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to create goal:', error);
+      }
+      alert('Failed to create goal. Please try again.');
+    }
   };
 
-  // Mock data
-  const goals = [
-    {
-      id: '1',
-      name: 'Emergency Fund',
-      description: 'Build 6 months of expenses',
-      targetAmount: 10000,
-      currentAmount: 7500,
-      targetDate: '2024-12-31',
-      status: 'on-track',
-      category: 'Savings',
-      monthlyContribution: 500,
-      color: '#3b82f6',
-    },
-    {
-      id: '2',
-      name: 'Vacation to Europe',
-      description: 'Summer vacation 2024',
-      targetAmount: 5000,
-      currentAmount: 3200,
-      targetDate: '2024-08-15',
-      status: 'at-risk',
-      category: 'Travel',
-      monthlyContribution: 400,
-      color: '#8b5cf6',
-    },
-    {
-      id: '3',
-      name: 'New Laptop',
-      description: 'MacBook Pro M3',
-      targetAmount: 2000,
-      currentAmount: 2000,
-      targetDate: '2024-06-30',
-      status: 'achieved',
-      category: 'Electronics',
-      monthlyContribution: 0,
-      color: '#22c55e',
-    },
-    {
-      id: '4',
-      name: 'Home Down Payment',
-      description: '20% down payment',
-      targetAmount: 50000,
-      currentAmount: 15000,
-      targetDate: '2025-12-31',
-      status: 'on-track',
-      category: 'Real Estate',
-      monthlyContribution: 2000,
-      color: '#f59e0b',
-    },
-  ];
+  // Fetch goals from database
+  useEffect(() => {
+    const fetchGoals = async () => {
+      try {
+        setIsLoading(true);
+        const response = await api.goals.getAll();
+        const fetchedGoals = response.data;
+
+        // Calculate status and color for each goal
+        const goalsWithStatus: GoalWithStatus[] = fetchedGoals.map((goal: Goal) => {
+          const currentAmount = Number(goal.currentAmount);
+          const targetAmount = Number(goal.targetAmount);
+          const percentage = (currentAmount / targetAmount) * 100;
+          
+          const now = new Date();
+          const targetDate = new Date(goal.targetDate);
+          const startDate = new Date(goal.startDate);
+          const totalDuration = targetDate.getTime() - startDate.getTime();
+          const elapsed = now.getTime() - startDate.getTime();
+          const timeProgress = (elapsed / totalDuration) * 100;
+
+          // Calculate status
+          let status: 'achieved' | 'on-track' | 'at-risk';
+          if (percentage >= 100) {
+            status = 'achieved';
+          } else if (percentage >= timeProgress * 0.8) {
+            // If progress is at least 80% of expected time-based progress
+            status = 'on-track';
+          } else {
+            status = 'at-risk';
+          }
+
+          // Assign color based on category
+          const categoryColors: Record<string, string> = {
+            'Saving': '#3b82f6',
+            'Travel': '#8b5cf6',
+            'Electronics': '#22c55e',
+            'Real Estate': '#f59e0b',
+            'Education': '#06b6d4',
+            'Investment': '#ef4444',
+          };
+          const color = categoryColors[goal.category] || '#6b7280';
+
+          return {
+            ...goal,
+            status,
+            color,
+            currentAmount,
+            targetAmount,
+          };
+        });
+
+        setGoals(goalsWithStatus);
+      } catch (error) {
+        // Silently fail
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchGoals();
+  }, [refreshKey]);
 
   const totalTargetAmount = goals.reduce((sum, g) => sum + g.targetAmount, 0);
   const totalCurrentAmount = goals.reduce((sum, g) => sum + g.currentAmount, 0);
@@ -100,10 +161,10 @@ export default function GoalsPage() {
         {/* Page Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
+            <h1 className="text-3xl font-bold font-mono text-[#0066ff] mb-2">
               Financial Goals
             </h1>
-            <p className="text-neutral-600 dark:text-neutral-400">
+            <p className="text-zinc-400">
               Set, track, and achieve your financial objectives
             </p>
           </div>
@@ -121,15 +182,15 @@ export default function GoalsPage() {
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-1">
+                <p className="text-sm font-medium text-zinc-400 mb-1">
                   Total Progress
                 </p>
-                <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
+                <p className="text-2xl font-bold font-mono text-white">
                   {calculatePercentage(totalCurrentAmount, totalTargetAmount).toFixed(0)}%
                 </p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-                <Target className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <div className="w-12 h-12 rounded-xl bg-[#0066ff]/10 flex items-center justify-center">
+                <Target className="w-6 h-6 text-[#0066ff]" />
               </div>
             </div>
           </Card>
@@ -137,15 +198,15 @@ export default function GoalsPage() {
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-1">
+                <p className="text-sm font-medium text-zinc-400 mb-1">
                   Total Saved
                 </p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                <p className="text-2xl font-bold font-mono text-[#10b981]">
                   {formatCurrency(totalCurrentAmount)}
                 </p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-green-600 dark:text-green-400" />
+              <div className="w-12 h-12 rounded-xl bg-[#10b981]/10 flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-[#10b981]" />
               </div>
             </div>
           </Card>
@@ -153,15 +214,15 @@ export default function GoalsPage() {
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-1">
+                <p className="text-sm font-medium text-zinc-400 mb-1">
                   Active Goals
                 </p>
-                <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
+                <p className="text-2xl font-bold font-mono text-white">
                   {activeGoals}
                 </p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              <div className="w-12 h-12 rounded-xl bg-[#f59e0b]/10 flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-[#f59e0b]" />
               </div>
             </div>
           </Card>
@@ -169,22 +230,30 @@ export default function GoalsPage() {
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-1">
+                <p className="text-sm font-medium text-zinc-400 mb-1">
                   Completed
                 </p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                <p className="text-2xl font-bold font-mono text-[#10b981]">
                   {achievedGoals}
                 </p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
-                <Flag className="w-6 h-6 text-green-600 dark:text-green-400" />
+              <div className="w-12 h-12 rounded-xl bg-[#10b981]/10 flex items-center justify-center">
+                <Flag className="w-6 h-6 text-[#10b981]" />
               </div>
             </div>
           </Card>
         </div>
 
         {/* Goals Grid */}
-        {goals.length === 0 ? (
+        {isLoading ? (
+          <Card>
+            <CardContent>
+              <div className="flex items-center justify-center py-12">
+                <p className="text-zinc-400 font-mono">Loading goals...</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : goals.length === 0 ? (
           <Card>
             <CardContent>
               <EmptyState
@@ -224,11 +293,11 @@ export default function GoalsPage() {
                           <Target className="w-6 h-6" style={{ color: goal.color }} />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-neutral-900 dark:text-neutral-100 mb-1">
-                            {goal.name}
+                          <h3 className="font-semibold text-white mb-1">
+                            {goal.title}
                           </h3>
-                          <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                            {goal.description}
+                          <p className="text-sm text-zinc-400">
+                            {goal.description || goal.category}
                           </p>
                         </div>
                       </div>
@@ -238,14 +307,14 @@ export default function GoalsPage() {
                     {/* Progress */}
                     <div className="mb-4">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                        <span className="text-sm text-zinc-400">
                           {formatCurrency(goal.currentAmount)} of {formatCurrency(goal.targetAmount)}
                         </span>
-                        <span className="text-sm font-semibold" style={{ color: goal.color }}>
+                        <span className="text-sm font-semibold font-mono" style={{ color: goal.color }}>
                           {percentage.toFixed(0)}%
                         </span>
                       </div>
-                      <div className="relative h-3 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
+                      <div className="relative h-3 bg-[#1a1a1a] rounded-full overflow-hidden">
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${Math.min(percentage, 100)}%` }}
@@ -257,26 +326,26 @@ export default function GoalsPage() {
                     </div>
 
                     {/* Stats */}
-                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-neutral-200 dark:border-neutral-800">
+                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[#262626]">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <DollarSign className="w-4 h-4 text-neutral-400" />
-                          <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                          <DollarSign className="w-4 h-4 text-zinc-500" />
+                          <span className="text-xs text-zinc-400">
                             Remaining
                           </span>
                         </div>
-                        <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                        <p className="text-sm font-semibold font-mono text-white">
                           {formatCurrency(remaining)}
                         </p>
                       </div>
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <Calendar className="w-4 h-4 text-neutral-400" />
-                          <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                          <Calendar className="w-4 h-4 text-zinc-500" />
+                          <span className="text-xs text-zinc-400">
                             Deadline
                           </span>
                         </div>
-                        <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                        <p className="text-sm font-semibold font-mono text-white">
                           {daysRemaining > 0
                             ? `${daysRemaining} days`
                             : goal.status === 'achieved'
@@ -285,20 +354,6 @@ export default function GoalsPage() {
                         </p>
                       </div>
                     </div>
-
-                    {/* Monthly Contribution */}
-                    {goal.monthlyContribution > 0 && (
-                      <div className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-800">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                            Monthly Contribution
-                          </span>
-                          <span className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-                            {formatCurrency(goal.monthlyContribution)}
-                          </span>
-                        </div>
-                      </div>
-                    )}
                   </Card>
                 </motion.div>
               );

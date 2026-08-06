@@ -14,7 +14,7 @@ import { BudgetsService } from './budgets.service';
 import { CreateBudgetDto } from './dto/create-budget.dto';
 import { UpdateBudgetDto } from './dto/update-budget.dto';
 import { JwtAuthGuard } from '@/auth/auth.guard';
-import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @Controller('api/budgets')
 @UseGuards(JwtAuthGuard)
@@ -29,19 +29,23 @@ export class BudgetsController {
   @Get()
   findAll(
     @CurrentUser('id') userId: number,
-    @Query('month', ParseIntPipe) month?: number,
-    @Query('year', ParseIntPipe) year?: number
+    @Query('month') month?: string,
+    @Query('year') year?: string
   ) {
-    return this.budgetsService.findAll(userId, month, year);
+    const monthNum = month ? parseInt(month) : undefined;
+    const yearNum = year ? parseInt(year) : undefined;
+    return this.budgetsService.findAll(userId, monthNum, yearNum);
   }
 
   @Get('summary')
   getSummary(
     @CurrentUser('id') userId: number,
-    @Query('month', ParseIntPipe) month?: number,
-    @Query('year', ParseIntPipe) year?: number
+    @Query('month') month?: string,
+    @Query('year') year?: string
   ) {
-    return this.budgetsService.getBudgetSummary(userId, month, year);
+    const monthNum = month ? parseInt(month) : undefined;
+    const yearNum = year ? parseInt(year) : undefined;
+    return this.budgetsService.getBudgetSummary(userId, monthNum, yearNum);
   }
 
   @Get(':id')

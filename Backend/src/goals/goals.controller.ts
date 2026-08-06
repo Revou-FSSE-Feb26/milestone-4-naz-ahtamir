@@ -13,8 +13,8 @@ import { GoalsService } from './goals.service';
 import { CreateGoalDto } from './dto/create-goal.dto';
 import { UpdateGoalDto } from './dto/update-goal.dto';
 import { AddContributionDto } from './dto/add-contribution.dto';
-import { JwtAuthGuard } from '@/auth/auth.guard';
-import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../auth/auth.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @Controller('api/goals')
 @UseGuards(JwtAuthGuard)

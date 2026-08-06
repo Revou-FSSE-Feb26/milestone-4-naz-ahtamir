@@ -21,27 +21,71 @@ import {
   Check,
 } from 'lucide-react';
 import { useTheme } from '@/lib/providers/ThemeProvider';
+import { api } from '@/lib/api-client';
+import { ChangePasswordModal } from '@/components/ui/ChangePasswordModal';
 
 export default function SettingsPage() {
   const { theme, toggleTheme } = useTheme();
   const [successMessage, setSuccessMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 
   // Notification Settings
   const [notifications, setNotifications] = useState({
-    email: true,
-    push: true,
+    email: true, // UI only - not persisted to DB yet
+    push: true, // UI only - not persisted to DB yet
     transactions: true,
-    budgetAlerts: true,
-    goalUpdates: false,
-    monthlyReports: true,
+    budgetAlerts: true, // Maps to budgetNotification
+    goalUpdates: true,
+    monthlyReports: true, // UI only - not persisted to DB yet
   });
 
   // Security Settings
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
 
-  const handleSaveNotifications = () => {
-    setSuccessMessage('Notification preferences updated successfully!');
-    setTimeout(() => setSuccessMessage(''), 3000);
+  // Load settings from database on mount
+  React.useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        setIsLoading(true);
+        const response = await api.users.getSettings();
+        const settings = response.data;
+        
+        // Map database settings to state
+        setNotifications({
+          email: true, // UI only - future feature
+          push: true, // UI only - future feature
+          transactions: settings.transactionNotification ?? true,
+          budgetAlerts: settings.budgetNotification !== 'NEVER', // Convert frequency to boolean
+          goalUpdates: settings.goalNotification ?? true,
+          monthlyReports: true, // UI only - future feature
+        });
+      } catch (error) {
+        // Silently fail
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, []);
+
+  const handleSaveNotifications = async () => {
+    try {
+      setIsSaving(true);
+      await api.users.updateSettings({
+        transactionNotification: notifications.transactions,
+        goalNotification: notifications.goalUpdates,
+        budgetNotification: notifications.budgetAlerts ? 'WEEKLY' : 'NEVER',
+      });
+      setSuccessMessage('Notification preferences updated successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error) {
+      setSuccessMessage('Failed to save settings');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -49,10 +93,10 @@ export default function SettingsPage() {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Page Header */}
         <div>
-          <h1 className="text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
+          <h1 className="text-3xl font-bold font-mono text-[#0066ff] mb-2">
             Settings
           </h1>
-          <p className="text-neutral-600 dark:text-neutral-400">
+          <p className="text-zinc-400">
             Manage your application preferences and security settings
           </p>
         </div>
@@ -64,6 +108,16 @@ export default function SettingsPage() {
           </Alert>
         )}
 
+        {isLoading ? (
+          <Card>
+            <CardContent>
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
         {/* Appearance Settings */}
         <Card>
           <CardHeader>
@@ -80,10 +134,10 @@ export default function SettingsPage() {
                     <Sun className="w-5 h-5 text-neutral-400" />
                   )}
                   <div>
-                    <p className="font-medium text-neutral-900 dark:text-neutral-100">
+                    <p className="font-medium text-white">
                       Theme
                     </p>
-                    <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                    <p className="text-sm text-zinc-400">
                       Choose between light and dark mode
                     </p>
                   </div>
@@ -97,15 +151,15 @@ export default function SettingsPage() {
                 </Button>
               </div>
 
-              <div className="border-t border-neutral-200 dark:border-neutral-800 pt-6">
+              <div className="border-t border-[#262626] pt-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Globe className="w-5 h-5 text-neutral-400" />
+                    <Globe className="w-5 h-5 text-zinc-500" />
                     <div>
-                      <p className="font-medium text-neutral-900 dark:text-neutral-100">
+                      <p className="font-medium text-white">
                         Language
                       </p>
-                      <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                      <p className="text-sm text-zinc-400">
                         Select your preferred language
                       </p>
                     </div>
@@ -138,6 +192,7 @@ export default function SettingsPage() {
                 variant="primary"
                 size="sm"
                 onClick={handleSaveNotifications}
+                isLoading={isSaving}
                 leftIcon={<Check className="w-4 h-4" />}
               >
                 Save
@@ -148,7 +203,7 @@ export default function SettingsPage() {
             <div className="space-y-6">
               {/* Notification Channels */}
               <div>
-                <h4 className="font-medium text-neutral-900 dark:text-neutral-100 mb-4">
+                <h4 className="font-medium text-white mb-4">
                   Notification Channels
                 </h4>
                 <div className="space-y-4">
@@ -156,10 +211,10 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-3">
                       <Mail className="w-5 h-5 text-neutral-400" />
                       <div>
-                        <p className="font-medium text-neutral-900 dark:text-neutral-100">
+                        <p className="font-medium text-white">
                           Email Notifications
                         </p>
-                        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                        <p className="text-sm text-zinc-400">
                           Receive notifications via email
                         </p>
                       </div>
@@ -181,10 +236,10 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-3">
                       <Smartphone className="w-5 h-5 text-neutral-400" />
                       <div>
-                        <p className="font-medium text-neutral-900 dark:text-neutral-100">
+                        <p className="font-medium text-white">
                           Push Notifications
                         </p>
-                        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                        <p className="text-sm text-zinc-400">
                           Receive push notifications on your device
                         </p>
                       </div>
@@ -205,17 +260,17 @@ export default function SettingsPage() {
               </div>
 
               {/* Notification Types */}
-              <div className="border-t border-neutral-200 dark:border-neutral-800 pt-6">
-                <h4 className="font-medium text-neutral-900 dark:text-neutral-100 mb-4">
+              <div className="border-t border-[#262626] pt-6">
+                <h4 className="font-medium text-white mb-4">
                   What to Notify
                 </h4>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-neutral-900 dark:text-neutral-100">
+                      <p className="font-medium text-white">
                         Transaction Alerts
                       </p>
-                      <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                      <p className="text-sm text-zinc-400">
                         Get notified about new transactions
                       </p>
                     </div>
@@ -234,10 +289,10 @@ export default function SettingsPage() {
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-neutral-900 dark:text-neutral-100">
+                      <p className="font-medium text-white">
                         Budget Alerts
                       </p>
-                      <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                      <p className="text-sm text-zinc-400">
                         Alerts when approaching budget limits
                       </p>
                     </div>
@@ -256,10 +311,10 @@ export default function SettingsPage() {
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-neutral-900 dark:text-neutral-100">
+                      <p className="font-medium text-white">
                         Goal Updates
                       </p>
-                      <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                      <p className="text-sm text-zinc-400">
                         Progress updates on financial goals
                       </p>
                     </div>
@@ -278,10 +333,10 @@ export default function SettingsPage() {
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-neutral-900 dark:text-neutral-100">
+                      <p className="font-medium text-white">
                         Monthly Reports
                       </p>
-                      <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                      <p className="text-sm text-zinc-400">
                         Monthly financial summary reports
                       </p>
                     </div>
@@ -336,20 +391,25 @@ export default function SettingsPage() {
                 </Button>
               </div>
 
-              <div className="border-t border-neutral-200 dark:border-neutral-800 pt-6">
+              <div className="border-t border-[#262626] pt-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Lock className="w-5 h-5 text-neutral-400" />
+                    <Lock className="w-5 h-5 text-zinc-500" />
                     <div>
-                      <p className="font-medium text-neutral-900 dark:text-neutral-100">
+                      <p className="font-medium text-white">
                         Change Password
                       </p>
-                      <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                      <p className="text-sm text-zinc-400">
                         Update your account password
                       </p>
                     </div>
                   </div>
-                  <Button variant="outline">Change Password</Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => setIsPasswordModalOpen(true)}
+                  >
+                    Change Password
+                  </Button>
                 </div>
               </div>
             </div>
@@ -364,14 +424,14 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 border border-neutral-200 dark:border-neutral-800 rounded-xl">
+              <div className="flex items-center justify-between p-4 border border-[#262626] rounded-xl">
                 <div className="flex items-center gap-3">
-                  <Download className="w-5 h-5 text-neutral-400" />
+                  <Download className="w-5 h-5 text-zinc-500" />
                   <div>
-                    <p className="font-medium text-neutral-900 dark:text-neutral-100">
+                    <p className="font-medium text-white">
                       Export Your Data
                     </p>
-                    <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                    <p className="text-sm text-zinc-400">
                       Download all your financial data
                     </p>
                   </div>
@@ -379,23 +439,31 @@ export default function SettingsPage() {
                 <Button variant="outline" size="sm">Export</Button>
               </div>
 
-              <div className="flex items-center justify-between p-4 border border-neutral-200 dark:border-neutral-800 rounded-xl">
+              <div className="flex items-center justify-between p-4 border border-[#262626] rounded-xl">
                 <div>
-                  <p className="font-medium text-neutral-900 dark:text-neutral-100">
+                  <p className="font-medium text-white">
                     Data Retention
                   </p>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                  <p className="text-sm text-zinc-400">
                     How long we keep your data
                   </p>
                 </div>
-                <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                <span className="text-sm font-medium text-zinc-300">
                   Indefinitely
                 </span>
               </div>
             </div>
           </CardContent>
         </Card>
+        </>
+        )}
       </div>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+      />
     </DashboardLayout>
   );
 }

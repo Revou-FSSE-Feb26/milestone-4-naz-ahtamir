@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/Card'
-import { api } from '@/lib/api'
+import { api } from '@/lib/api-client'
 import { DashboardStats } from '@/types'
 
 const demoStats: DashboardStats = {

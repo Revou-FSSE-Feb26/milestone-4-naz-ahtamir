@@ -8,21 +8,49 @@ import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
 import { Camera, Save, User, Mail, Phone, MapPin, Calendar } from 'lucide-react';
 import { cn, getInitials, getAvatarColor } from '@/lib/utils';
+import { useAuthStore } from '@/lib/store/auth.store';
+import { api } from '@/lib/api-client';
 
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const { user } = useAuthStore();
+  
+  // State untuk statistics dari database
+  const [statistics, setStatistics] = useState({
+    totalTransactions: 0,
+    activeAccounts: 0,
+    daysActive: 0,
+  });
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
 
   const [formData, setFormData] = useState({
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    phone: '+1 (555) 123-4567',
-    location: 'San Francisco, CA',
-    bio: 'Financial enthusiast focused on achieving financial independence.',
-    currency: 'USD',
-    language: 'English',
+    name: user?.name || 'Guest',
+    email: user?.email || 'guest@example.com',
+    phone: '',
+    location: '',
+    bio: '',
+    currency: 'IDR',
+    language: 'Indonesian',
   });
+
+  // Fetch real statistics dari database
+  React.useEffect(() => {
+    const fetchStatistics = async () => {
+      try {
+        setIsLoadingStats(true);
+        const response = await api.users.getStatistics();
+        setStatistics(response.data);
+      } catch (error) {
+        // Silently fail
+      } finally {
+        setIsLoadingStats(false);
+      }
+    };
+
+    fetchStatistics();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -51,10 +79,10 @@ export default function ProfilePage() {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Page Header */}
         <div>
-          <h1 className="text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
+          <h1 className="text-3xl font-bold font-mono text-[#0066ff] mb-2">
             Profile
           </h1>
-          <p className="text-neutral-600 dark:text-neutral-400">
+          <p className="text-zinc-400">
             Manage your personal information and preferences
           </p>
         </div>
@@ -74,7 +102,7 @@ export default function ProfilePage() {
           </CardHeader>
           <CardContent>
             {/* Avatar Section */}
-            <div className="flex items-center gap-6 mb-8 pb-8 border-b border-neutral-200 dark:border-neutral-800">
+            <div className="flex items-center gap-6 mb-8 pb-8 border-b border-[#262626]">
               <div className="relative">
                 <div
                   className={cn(
@@ -89,10 +117,10 @@ export default function ProfilePage() {
                 </button>
               </div>
               <div>
-                <h3 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-1">
+                <h3 className="text-xl font-bold text-white mb-1">
                   {formData.name}
                 </h3>
-                <p className="text-neutral-600 dark:text-neutral-400 mb-3">
+                <p className="text-zinc-400 mb-3">
                   {formData.email}
                 </p>
                 <Button variant="outline" size="sm" leftIcon={<Camera className="w-4 h-4" />}>
@@ -147,7 +175,7 @@ export default function ProfilePage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                <label className="block text-sm font-medium text-zinc-400 mb-2">
                   Bio
                 </label>
                 <textarea
@@ -156,7 +184,7 @@ export default function ProfilePage() {
                   onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                   disabled={!isEditing}
                   rows={4}
-                  className="w-full rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-4 py-2.5 text-sm text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full rounded-xl border border-zinc-700 bg-[#1a1a1a] px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#0066ff] disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -197,32 +225,38 @@ export default function ProfilePage() {
             <CardDescription>Your activity summary</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-1">
-                  1,234
-                </p>
-                <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                  Total Transactions
-                </p>
+            {isLoadingStats ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
               </div>
-              <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
-                <p className="text-3xl font-bold text-green-600 dark:text-green-400 mb-1">
-                  8
-                </p>
-                <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                  Active Accounts
-                </p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="text-center p-4 bg-[#0066ff]/10 rounded-xl">
+                  <p className="text-3xl font-bold font-mono text-[#0066ff] mb-1">
+                    {statistics.totalTransactions.toLocaleString()}
+                  </p>
+                  <p className="text-sm text-zinc-400">
+                    Total Transactions
+                  </p>
+                </div>
+                <div className="text-center p-4 bg-[#10b981]/10 rounded-xl">
+                  <p className="text-3xl font-bold font-mono text-[#10b981] mb-1">
+                    {statistics.activeAccounts}
+                  </p>
+                  <p className="text-sm text-zinc-400">
+                    Active Accounts
+                  </p>
+                </div>
+                <div className="text-center p-4 bg-[#f59e0b]/10 rounded-xl">
+                  <p className="text-3xl font-bold font-mono text-[#f59e0b] mb-1">
+                    {statistics.daysActive}
+                  </p>
+                  <p className="text-sm text-zinc-400">
+                    Days Active
+                  </p>
+                </div>
               </div>
-              <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
-                <p className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-1">
-                  245
-                </p>
-                <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                  Days Active
-                </p>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 
@@ -234,45 +268,45 @@ export default function ProfilePage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center justify-between py-3 border-b border-neutral-200 dark:border-neutral-800">
+              <div className="flex items-center justify-between py-3 border-b border-[#262626]">
                 <div>
-                  <p className="font-medium text-neutral-900 dark:text-neutral-100">
+                  <p className="font-medium text-white">
                     Member Since
                   </p>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                  <p className="text-sm text-zinc-400">
                     Your account creation date
                   </p>
                 </div>
-                <div className="flex items-center gap-2 text-neutral-700 dark:text-neutral-300">
+                <div className="flex items-center gap-2 text-zinc-300">
                   <Calendar className="w-4 h-4" />
                   <span>January 15, 2024</span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between py-3 border-b border-neutral-200 dark:border-neutral-800">
+              <div className="flex items-center justify-between py-3 border-b border-[#262626]">
                 <div>
-                  <p className="font-medium text-neutral-900 dark:text-neutral-100">
+                  <p className="font-medium text-white">
                     Default Currency
                   </p>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                  <p className="text-sm text-zinc-400">
                     Primary currency for transactions
                   </p>
                 </div>
-                <span className="text-neutral-700 dark:text-neutral-300 font-medium">
+                <span className="text-zinc-300 font-medium">
                   USD ($)
                 </span>
               </div>
 
               <div className="flex items-center justify-between py-3">
                 <div>
-                  <p className="font-medium text-neutral-900 dark:text-neutral-100">
+                  <p className="font-medium text-white">
                     Language
                   </p>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                  <p className="text-sm text-zinc-400">
                     Interface language
                   </p>
                 </div>
-                <span className="text-neutral-700 dark:text-neutral-300 font-medium">
+                <span className="text-zinc-300 font-medium">
                   English (US)
                 </span>
               </div>
@@ -283,17 +317,17 @@ export default function ProfilePage() {
         {/* Danger Zone */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-red-600 dark:text-red-400">Danger Zone</CardTitle>
+            <CardTitle className="text-[#ef4444]">Danger Zone</CardTitle>
             <CardDescription>Irreversible account actions</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 border border-red-200 dark:border-red-800 rounded-xl">
+              <div className="flex items-center justify-between p-4 border border-[#ef4444]/30 rounded-xl">
                 <div>
-                  <p className="font-medium text-neutral-900 dark:text-neutral-100">
+                  <p className="font-medium text-white">
                     Delete Account
                   </p>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                  <p className="text-sm text-zinc-400">
                     Permanently delete your account and all data
                   </p>
                 </div>

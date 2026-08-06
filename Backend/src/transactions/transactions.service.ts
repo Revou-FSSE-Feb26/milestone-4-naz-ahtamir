@@ -46,20 +46,34 @@ export class TransactionsService {
     });
   }
 
-  async findAll(userId: number) {
-    return this.transactionRepo.findByUserId(userId);
-  }
+  async findAll(userId: number, startDate?: string, endDate?: string) {
+    const where: any = { userId };
 
-  async findOne(id: number, userId: number) {
-    const transaction = await this.transactionRepo.findById(id);
-    
-    if (!transaction || transaction.userId !== userId) {
-      throw new Error('Transaction not found');
+    if (startDate || endDate) {
+      where.transactionDate = {};
+      if (startDate) {
+        where.transactionDate.gte = new Date(startDate);
+      }
+      if (endDate) {
+        // Set endDate to end of day to include all transactions on that day
+        const endOfDay = new Date(endDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        where.transactionDate.lte = endOfDay;
+      }
     }
-    
-    return transaction;
-  }
 
+    // Urutkan dari yang terbaru dengan include relations
+    return this.prisma.transaction.findMany({
+      where,
+      include: {
+        account: true,
+        category: true,
+        fromAccount: true,
+        toAccount: true,
+      },
+      orderBy: { transactionDate: 'desc' },
+    });
+  }
   async update(id: number, userId: number, updateTransactionDto: UpdateTransactionDto) {
     // Verify ownership
     await this.findOne(id, userId);
@@ -75,6 +89,11 @@ export class TransactionsService {
     return this.transactionRepo.update(id, updateData);
   }
 
+  async findOne(id: number, userId: number) {
+  return this.prisma.transaction.findFirst({
+    where: { id, userId },
+  });
+  }
   async remove(id: number, userId: number) {
     // Verify ownership
     await this.findOne(id, userId);
@@ -83,33 +102,48 @@ export class TransactionsService {
   }
 
   async getStats(userId: number, startDate?: Date, endDate?: Date) {
-    const transactions = await this.transactionRepo.findByUserId(userId);
+    // Build where clause for filtering
+    const where: any = { userId };
     
-    let filtered = transactions;
     if (startDate || endDate) {
-      filtered = transactions.filter(tx => {
-        const txDate = new Date(tx.transactionDate);
-        if (startDate && txDate < startDate) return false;
-        if (endDate && txDate > endDate) return false;
-        return true;
-      });
+      where.transactionDate = {};
+      if (startDate) {
+        where.transactionDate.gte = startDate;
+      }
+      if (endDate) {
+        // Set endDate to end of day to include all transactions on that day
+        const endOfDay = new Date(endDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        where.transactionDate.lte = endOfDay;
+      }
     }
 
-    const income = filtered
+    // Get all filtered transactions
+    const transactions = await this.prisma.transaction.findMany({
+      where,
+      select: {
+        type: true,
+        amount: true,
+      },
+    });
+
+    // Calculate stats
+    const income = transactions
       .filter(tx => tx.type === 'INCOME')
       .reduce((sum, tx) => sum + Number(tx.amount), 0);
 
-    const expenses = filtered
+    const expenses = transactions
       .filter(tx => tx.type === 'EXPENSE')
       .reduce((sum, tx) => sum + Number(tx.amount), 0);
 
+    // Balance tidak termasuk TRANSFER karena transfer hanya pemindahan uang
     const balance = income - expenses;
 
     return {
       income,
       expenses,
       balance,
-      transactionCount: filtered.length,
+      transactionCount: transactions.length,
     };
   }
 }

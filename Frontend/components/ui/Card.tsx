@@ -16,16 +16,16 @@ export function Card({
   const paddingStyles = {
     none: '',
     sm: 'p-4',
-    md: 'p-6',
-    lg: 'p-8',
+    md: 'p-5',
+    lg: 'p-6',
   };
 
   return (
     <div
       className={cn(
-        'bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800',
+        'bg-[#0a0a0a] rounded-xl border border-[#262626]',
         'shadow-sm',
-        hover && 'transition-all duration-200 hover:shadow-md hover:-translate-y-0.5',
+        hover && 'transition-all duration-150 hover:shadow-md hover:-translate-y-0.5',
         paddingStyles[padding],
         className
       )}
@@ -56,7 +56,7 @@ export function CardTitle({
   return (
     <h3
       className={cn(
-        'text-lg font-semibold leading-none tracking-tight text-neutral-900 dark:text-neutral-100',
+        'text-base font-semibold leading-none tracking-tight text-white',
         className
       )}
       {...props}
@@ -73,7 +73,7 @@ export function CardDescription({
 }: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
     <p
-      className={cn('text-sm text-neutral-500 dark:text-neutral-400', className)}
+      className={cn('text-sm text-gray-400', className)}
       {...props}
     >
       {children}
@@ -87,7 +87,7 @@ export function CardContent({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('pt-6', className)} {...props}>
+    <div className={cn('pt-4', className)} {...props}>
       {children}
     </div>
   );
@@ -99,7 +99,7 @@ export function CardFooter({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('flex items-center pt-6', className)} {...props}>
+    <div className={cn('flex items-center pt-4', className)} {...props}>
       {children}
     </div>
   );

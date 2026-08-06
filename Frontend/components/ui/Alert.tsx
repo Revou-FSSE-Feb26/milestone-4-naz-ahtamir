@@ -18,9 +18,9 @@ export function Alert({
 }: AlertProps) {
   const variants = {
     info: {
-      container: 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800',
-      title: 'text-blue-900 dark:text-blue-300',
-      description: 'text-blue-800 dark:text-blue-400',
+      container: 'bg-[#0066ff]/10 border-[#0066ff]/30',
+      title: 'text-[#0066ff]',
+      description: 'text-zinc-300',
       icon: (
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
           <path
@@ -32,9 +32,9 @@ export function Alert({
       ),
     },
     success: {
-      container: 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800',
-      title: 'text-green-900 dark:text-green-300',
-      description: 'text-green-800 dark:text-green-400',
+      container: 'bg-[#10b981]/10 border-[#10b981]/30',
+      title: 'text-[#10b981]',
+      description: 'text-zinc-300',
       icon: (
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
           <path
@@ -46,9 +46,9 @@ export function Alert({
       ),
     },
     warning: {
-      container: 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800',
-      title: 'text-yellow-900 dark:text-yellow-300',
-      description: 'text-yellow-800 dark:text-yellow-400',
+      container: 'bg-[#f59e0b]/10 border-[#f59e0b]/30',
+      title: 'text-[#f59e0b]',
+      description: 'text-zinc-300',
       icon: (
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
           <path
@@ -60,9 +60,9 @@ export function Alert({
       ),
     },
     error: {
-      container: 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800',
-      title: 'text-red-900 dark:text-red-300',
-      description: 'text-red-800 dark:text-red-400',
+      container: 'bg-[#ef4444]/10 border-[#ef4444]/30',
+      title: 'text-[#ef4444]',
+      description: 'text-zinc-300',
       icon: (
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
           <path

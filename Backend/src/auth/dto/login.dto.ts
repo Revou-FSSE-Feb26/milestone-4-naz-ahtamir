@@ -5,6 +5,6 @@ export class LoginDto {
   email: string;
 
   @IsString()
-  @MinLength(6)
+  @MinLength(1) // Allow any length for login (validation happens on password compare)
   password: string;
 }

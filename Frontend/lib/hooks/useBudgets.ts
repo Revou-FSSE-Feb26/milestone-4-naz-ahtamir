@@ -49,7 +49,12 @@ export const useGetBudgets = (month?: number, year?: number) => {
   return useQuery<Budget[]>({
     queryKey: ['budgets', month, year],
     queryFn: async () => {
-      const response = await apiClient.get('/api/budgets');
+      const params = new URLSearchParams();
+      if (month) params.append('month', month.toString());
+      if (year) params.append('year', year.toString());
+      
+      const url = `/api/budgets${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await apiClient.get(url);
       return response.data;
     },
   });
@@ -60,7 +65,12 @@ export const useGetBudgetSummary = (month?: number, year?: number) => {
   return useQuery<BudgetSummary>({
     queryKey: ['budgets', 'summary', month, year],
     queryFn: async () => {
-      const response = await apiClient.get('/api/budgets');
+      const params = new URLSearchParams();
+      if (month) params.append('month', month.toString());
+      if (year) params.append('year', year.toString());
+      
+      const url = `/api/budgets/summary${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await apiClient.get(url);
       return response.data;
     },
   });
