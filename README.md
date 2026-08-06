@@ -2,24 +2,6 @@
 
 A production-ready, full-stack personal finance management application built with NestJS and Next.js. Comprehensive solution for tracking income, expenses, budgets, and financial goals with real-time analytics and modern UI.
 
----
-
-## Table of Contents
-
-- [Features](#features)
-- [Technology Stack](#technology-stack)
-- [Getting Started](#getting-started)
-- [Project Structure](#project-structure)
-- [API Documentation](#api-documentation)
-- [Environment Configuration](#environment-configuration)
-- [Database Schema](#database-schema)
-- [Security Implementation](#security-implementation)
-- [Performance Metrics](#performance-metrics)
-- [Contributing](#contributing)
-- [License](#license)
-
----
-
 ## Features
 
 ### Core Functionality
@@ -43,8 +25,6 @@ A production-ready, full-stack personal finance management application built wit
 - Real-time data updates across all modules
 - Complete API documentation with Swagger/OpenAPI
 - Full TypeScript type safety throughout the application
-
----
 
 ## Technology Stack
 
@@ -73,8 +53,6 @@ A production-ready, full-stack personal finance management application built wit
 - **Code Quality:** ESLint for code linting, Prettier for code formatting
 - **Version Control:** Git with comprehensive .gitignore configuration
 - **Type Safety:** TypeScript for both frontend and backend
-
----
 
 ## Getting Started
 
@@ -152,8 +130,6 @@ npm run dev
 - Backend API: http://localhost:3000
 - API Documentation: http://localhost:3000/api/docs
 
----
-
 ## Project Structure
 
 ```
@@ -202,8 +178,6 @@ milestone-4-naz-ahtamir/
 ├── README.md                       # Project documentation (this file)
 └── DEMO_ACCOUNTS.md                # Demo account credentials
 ```
-
----
 
 ## API Documentation
 
@@ -278,8 +252,6 @@ POST   /api/goals/:id/contributions    Add contribution to goal
 
 **Complete API Documentation:** http://localhost:3000/api/docs (Swagger UI)
 
----
-
 ## Environment Configuration
 
 ### Backend Environment Variables (.env)
@@ -311,8 +283,6 @@ NODE_ENV="development"
 ```
 
 **Security Warning:** Never commit .env files to version control. All sensitive credentials should be stored securely.
-
----
 
 ## Database Schema
 
@@ -350,8 +320,6 @@ NODE_ENV="development"
 
 **Visual Diagram:** See `database/ER_DIAGRAM.md`
 
----
-
 ## Security Implementation
 
 ### Authentication & Authorization
@@ -385,10 +353,6 @@ NODE_ENV="development"
 - Secure session management
 - Zero information disclosure on errors
 
-**Security Assessment Score: 9.5/10 (Enterprise-level)**
-
----
-
 ## Performance Metrics
 
 - Average API response time: <500ms
@@ -397,8 +361,6 @@ NODE_ENV="development"
 - Efficient bundle size through code splitting
 - Optimized asset delivery
 - Lazy loading for components
-
----
 
 ## Testing
 
@@ -419,8 +381,6 @@ Test coverage includes:
 - Integration tests for API endpoints
 - E2E tests for critical user flows
 
----
-
 ### Development Standards
 
 - Maintain TypeScript type safety throughout
@@ -429,35 +389,6 @@ Test coverage includes:
 - Document complex logic with comments
 - Update relevant documentation
 - Ensure all tests pass before submitting PR
-
----
-
-## License
-
-This project is licensed under the MIT License. See LICENSE file for details.
-
----
-
-
-## Additional Documentation
-
-- `DEMO_ACCOUNTS.md` - Demo account credentials and test data
-- `database/README.md` - Database documentation and backup instructions
-- `database/ER_DIAGRAM.md` - Entity relationship diagram
-- `database/schema.sql` - Complete PostgreSQL schema DDL
-
----
-
-## Support
-
-For issues, questions, or contributions:
-
-1. Review existing documentation
-2. Check the API documentation at http://localhost:3000/api/docs
-3. Submit issues via GitHub issue tracker
-4. Contact project maintainers
-
----
 
 ## Acknowledgments
 
