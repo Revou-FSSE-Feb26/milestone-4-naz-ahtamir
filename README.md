@@ -1,5 +1,9 @@
 # FinTrack - Personal Finance Management System
 
+**Live Demo:** [https://fintrack.naz-ahtamir.site/](https://fintrack.naz-ahtamir.site/)
+
+**Live Swagger UI:** [https://fintrack-api-6mz4.onrender.com/api/docs](https://fintrack-api-6mz4.onrender.com/api/docs)
+
 A production-ready, full-stack personal finance management application built with NestJS and Next.js. Comprehensive solution for tracking income, expenses, budgets, and financial goals with real-time analytics and modern UI.
 
 ## Features
@@ -106,10 +110,6 @@ npx prisma migrate deploy
 ```bash
 npx prisma db seed
 ```
-
-This creates the following demo accounts:
-- Demo User: demo@fintrack.com / demo123
-- Admin User: admin@fintrack.com / admin123
 
 ### Running the Application
 
