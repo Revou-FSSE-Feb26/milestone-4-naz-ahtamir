@@ -7,33 +7,72 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
+
   // ========== SECURITY ==========
-  // Enable Helmet for security headers
   app.use(helmet());
+
+  // ========== CORS - PRODUCTION READY ==========
+  const isDevelopment = process.env.NODE_ENV !== 'production';
   
-  // Enable CORS for frontend
   app.enableCors({
-    origin: ['http://localhost:3001', 'http://localhost:3000', process.env.FRONTEND_URL].filter(Boolean),
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, Postman, etc)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      // Development: Allow localhost
+      if (isDevelopment && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+        return callback(null, true);
+      }
+
+      // Production: Allow specific domains
+      const allowedOrigins = [
+        process.env.FRONTEND_URL, // Set ini di Render environment variables
+      ].filter(Boolean);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Allow all Vercel deployments (*.vercel.app)
+      // This is the PERMANENT solution for Vercel
+      if (origin.match(/^https:\/\/.*\.vercel\.app$/)) {
+        return callback(null, true);
+      }
+
+      // Log blocked origins for debugging
+      console.warn(`⚠️  CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'Origin',
+      'X-Requested-With',
+    ],
+    exposedHeaders: ['Content-Length', 'Content-Type'],
+    maxAge: 86400, // 24 hours - reduces preflight requests
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
-  
+
   // ========== VALIDATION ==========
-  // Global validation pipe with detailed error messages
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, // Strip properties that don't have decorators
-      forbidNonWhitelisted: true, // Throw error if non-whitelisted properties exist
-      transform: true, // Automatically transform payloads to DTO instances
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
       transformOptions: {
-        enableImplicitConversion: true, // Convert types implicitly (string to number, etc)
+        enableImplicitConversion: true,
       },
     }),
   );
-  
-  // ========== SWAGGER DOCUMENTATION ==========
+
+  // ========== SWAGGER ==========
   const config = new DocumentBuilder()
     .setTitle('FinTrack API')
     .setDescription('Personal Finance Management System API Documentation')
@@ -57,13 +96,13 @@ async function bootstrap() {
     .addTag('budgets', 'Budget management')
     .addTag('goals', 'Financial goals')
     .build();
-    
+
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
-  
+
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
-  
+
   console.log(`🚀 Backend is running on: http://localhost:${port}`);
   console.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
 }
